@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Photo to Printable Coloring Page Maker | 100% Client-Side Edge Detection</title>
+  <meta name="description" content="Convert your family photos, pets, and pictures into clean printable black-and-white coloring pages. 100% private in-browser edge detection with zero cloud uploads.">
+  <meta name="keywords" content="photo to coloring page, image to outline, convert picture to sketch, printable coloring page maker, client-side sobel filter, kids coloring book generator">
+  <link rel="canonical" href="https://greentools-dev.github.io/image-to-coloring-page/">
+  <meta property="og:title" content="Photo to Printable Coloring Page Maker">
+  <meta property="og:description" content="Turn any photo into clean line art for coloring. 100% local in-browser Canvas processing.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://greentools-dev.github.io/image-to-coloring-page/">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              900: '#064e3b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #f8fafc;
+      background-image: 
+        linear-gradient(to right, rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(15, 23, 42, 0.04) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #print-area, #print-area * {
+        visibility: visible;
+      }
+      #print-area {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100vw;
+        height: 100vh;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: white;
+      }
+      #output-canvas {
+        max-width: 95vw;
+        max-height: 95vh;
+        object-fit: contain;
+      }
+    }
+  </style>
+
+  <!-- Structured Data JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebApplication",
+        "name": "Photo to Printable Coloring Page Maker",
+        "url": "https://greentools-dev.github.io/image-to-coloring-page/",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "All",
+        "browserRequirements": "Requires JavaScript. Requires HTML5 Canvas.",
+        "description": "Convert photos into clean black-and-white coloring pages in seconds. Runs 100% locally in your browser using Sobel edge detection.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Why use Sobel edge detection rather than AI generators?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Generative AI models redraw subjects from scratch and hallucinate features, distorting faces or pets. Sobel edge detection mathematically maps exact physical contours and edges directly from your original photo."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Are my family photos uploaded to any server?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Never. All image rendering, edge convolution kernels, and printable outputs process 100% inside your browser via HTML5 Canvas. Your photos never leave your device."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do I print the coloring page?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Click 'Print Coloring Page' to open the browser print dialog. The tool formats the output to fill standard A4 or US Letter paper with clean, high-contrast black line art on pure white paper."
+            }
+          }
+        ]
+      }
+    ]
+  </script>
+</head>
+<body class="min-h-screen flex flex-col font-sans text-slate-800 antialiased selection:bg-brand-100 selection:text-brand-900">
+
+  <!-- Header -->
+  <header class="border-b border-slate-200/80 bg-white/90 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-sm shadow-emerald-500/20">
+          <i data-lucide="brush" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <span class="font-extrabold text-slate-900 tracking-tight text-lg">GreenTools<span class="text-emerald-600">.dev</span></span>
+          <span class="hidden sm:inline-block ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60">Coloring Page Maker</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 bg-slate-100/80 px-2.5 py-1 rounded-md border border-slate-200">
+          <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-600"></i>
+          100% Client-Side Safe
+        </span>
+        <a href="https://github.com/greentools-dev/image-to-coloring-page" target="_blank" rel="noopener noreferrer" class="text-slate-500 hover:text-slate-900 transition-colors p-1.5">
+          <i data-lucide="github" class="w-5 h-5"></i>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero & Primary Container -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 py-8 md:py-12 flex flex-col">
+    <div class="text-center max-w-2xl mx-auto mb-8">
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+        Photo to Printable Coloring Page Maker
+      </h1>
+      <p class="mt-3 text-slate-600 text-sm sm:text-base leading-relaxed">
+        Turn your personal photos into crisp black-and-white line art for coloring. 100% local Canvas Sobel filter with zero cloud AI hallucinations.
+      </p>
+    </div>
+
+    <!-- Drop Zone (Progressive Disclosure) -->
+    <div id="drop-zone" class="bg-white border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-3xl p-8 sm:p-12 text-center transition-all cursor-pointer shadow-sm group">
+      <input type="file" id="file-input" accept="image/*" class="hidden">
+      <div class="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-4 group-hover:scale-105 transition-transform">
+        <i data-lucide="image-plus" class="w-8 h-8"></i>
+      </div>
+      <h3 class="text-lg font-bold text-slate-900 mb-1">Drop a photo here, or browse</h3>
+      <p class="text-xs sm:text-sm text-slate-500 max-w-md mx-auto mb-5 leading-relaxed">
+        Supports JPG, PNG, WEBP, and AVIF up to 25MB. Works completely offline.
+      </p>
+
+      <!-- Preset Sample Badges -->
+      <div class="flex items-center justify-center gap-2 flex-wrap text-xs">
+        <span class="text-slate-400 font-medium">Or try an example:</span>
+        <button type="button" class="sample-btn px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium transition-colors" data-sample="puppy">Cute Dog</button>
+        <button type="button" class="sample-btn px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium transition-colors" data-sample="flower">Botanical Flower</button>
+        <button type="button" class="sample-btn px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium transition-colors" data-sample="castle">Architecture Castle</button>
+      </div>
+    </div>
+
+    <!-- Active Workspace (Revealed after image loaded) -->
+    <div id="workspace" class="hidden mt-8 flex flex-col gap-8">
+      
+      <!-- Top Control Bar -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-wrap items-center justify-between gap-4">
+        
+        <!-- Sliders -->
+        <div class="flex flex-wrap items-center gap-6 text-xs">
+          <!-- Detail Sensitivity -->
+          <div class="flex flex-col gap-1.5 w-44">
+            <div class="flex items-center justify-between font-semibold text-slate-700">
+              <span>Detail Sensitivity</span>
+              <span id="label-sensitivity" class="font-mono text-emerald-700">35</span>
+            </div>
+            <input type="range" id="slider-sensitivity" min="10" max="90" value="35" class="w-full accent-emerald-600 cursor-pointer">
+          </div>
+
+          <!-- Line Thickness / Darkness -->
+          <div class="flex flex-col gap-1.5 w-44">
+            <div class="flex items-center justify-between font-semibold text-slate-700">
+              <span>Line Darkness</span>
+              <span id="label-darkness" class="font-mono text-emerald-700">2</span>
+            </div>
+            <input type="range" id="slider-darkness" min="1" max="5" value="2" class="w-full accent-emerald-600 cursor-pointer">
+          </div>
+
+          <!-- Invert Checkbox -->
+          <label class="inline-flex items-center gap-2 cursor-pointer select-none font-medium text-slate-700 pt-3">
+            <input type="checkbox" id="check-invert" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4">
+            <span>Invert (Chalkboard)</span>
+          </label>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center gap-2">
+          <button type="button" id="btn-reset" class="px-3.5 py-2 text-xs font-semibold rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
+            New Photo
+          </button>
+          <button type="button" id="btn-print" class="px-4 py-2 text-xs font-semibold rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 transition-colors flex items-center gap-1.5 shadow-2xs">
+            <i data-lucide="printer" class="w-3.5 h-3.5 text-emerald-600"></i>
+            Print Page
+          </button>
+          <button type="button" id="btn-download" class="px-4 py-2 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors flex items-center gap-1.5 shadow-sm shadow-emerald-600/20">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+            Download PNG
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Preview Split Area -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Original Photo -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col items-center">
+          <div class="w-full flex items-center justify-between mb-3 text-xs">
+            <span class="font-bold text-slate-500 uppercase tracking-wider">Original Photo</span>
+            <span id="photo-dim-label" class="font-mono text-slate-400">0 x 0 px</span>
+          </div>
+          <div class="w-full aspect-[4/3] rounded-xl overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center">
+            <img id="original-preview" class="max-w-full max-h-full object-contain" alt="Original photo">
+          </div>
+        </div>
+
+        <!-- Coloring Page Output Area (Print Target) -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col items-center" id="print-area">
+          <div class="w-full flex items-center justify-between mb-3 text-xs print:hidden">
+            <span class="font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600"></i>
+              Printable Coloring Page
+            </span>
+            <span class="font-mono text-emerald-700 font-semibold">Ready to Color</span>
+          </div>
+          <div class="w-full aspect-[4/3] rounded-xl overflow-hidden bg-white border border-slate-200 shadow-inner flex items-center justify-center p-2">
+            <canvas id="output-canvas" class="max-w-full max-h-full object-contain"></canvas>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Sponsor Slot -->
+    <aside id="sponsor-slot" class="mt-8 p-4 rounded-xl border border-dashed border-slate-300 bg-white text-center text-xs text-slate-500">
+      <span class="font-semibold text-slate-600 uppercase tracking-wider text-[11px] block mb-1">Sponsored</span>
+      Discover printable educational worksheets and classroom activity tools with GreenTools Studio.
+    </aside>
+
+    <!-- FAQ & Educational Guide -->
+    <section class="mt-12 bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-sm">
+      <h2 class="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+        <i data-lucide="help-circle" class="w-5 h-5 text-emerald-600"></i>
+        Coloring Page Guide & FAQ
+      </h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-slate-600">
+        <div>
+          <h3 class="font-semibold text-slate-800 mb-1">How does the edge-detection algorithm work?</h3>
+          <p class="leading-relaxed">
+            The image is first converted into 8-bit grayscale luminance. Next, a $3 \times 3$ Sobel convolution matrix calculates horizontal and vertical gradient vectors across neighboring pixels. Where luminance changes abruptly (contours, facial features, outlines), sharp dark line strokes are rendered against pure white paper.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-slate-800 mb-1">Which photos make the best coloring pages?</h3>
+          <p class="leading-relaxed">
+            Photos with good lighting, sharp focus, and high contrast between the subject and background produce the cleanest outlines. Pets, close-up portraits, architectural landmarks, and bold vehicles work exceptionally well.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-slate-800 mb-1">Is it safe for private family photos?</h3>
+          <p class="leading-relaxed">
+            Yes, 100%. Processing is executed exclusively within your web browser using HTML5 Canvas pixel manipulation. No photos or images are ever uploaded to any cloud server or third-party database.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-slate-800 mb-1">How do I adjust line thickness?</h3>
+          <p class="leading-relaxed">
+            Use the "Detail Sensitivity" slider to capture finer textures (like hair or foliage) or simplify the sketch. The "Line Darkness" slider intensifies the edge contrast for easy printing on household monochrome laser and inkjet printers.
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-200 bg-white mt-12 py-8">
+    <div class="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-slate-800">GreenTools.dev</span>
+        <span>&bull;</span>
+        <span>100% Client-Side Web Utilities</span>
+      </div>
+      <div>
+        Privacy-First Image Engine &bull; Zero Server Analytics
+      </div>
+    </div>
+  </footer>
+
+  <!-- Script Logic -->
+  <script>
+    lucide.createIcons();
+
+    // DOM Elements
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const workspace = document.getElementById('workspace');
+    const originalPreview = document.getElementById('original-preview');
+    const outputCanvas = document.getElementById('output-canvas');
+    const photoDimLabel = document.getElementById('photo-dim-label');
+
+    const sliderSensitivity = document.getElementById('slider-sensitivity');
+    const labelSensitivity = document.getElementById('label-sensitivity');
+    const sliderDarkness = document.getElementById('slider-darkness');
+    const labelDarkness = document.getElementById('label-darkness');
+    const checkInvert = document.getElementById('check-invert');
+
+    const btnReset = document.getElementById('btn-reset');
+    const btnPrint = document.getElementById('btn-print');
+    const btnDownload = document.getElementById('btn-download');
+
+    let loadedImage = null;
+
+    // Drag and Drop Handlers
+    dropZone.addEventListener('click', (e) => {
+      if (!e.target.closest('.sample-btn')) {
+        fileInput.click();
+      }
+    });
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('border-emerald-500', 'bg-emerald-50/20');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('border-emerald-500', 'bg-emerald-50/20');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('border-emerald-500', 'bg-emerald-50/20');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        processFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        processFile(e.target.files[0]);
+      }
+    });
+
+    function processFile(file) {
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file (JPG, PNG, WEBP).');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          loadedImage = img;
+          originalPreview.src = e.target.result;
+          photoDimLabel.textContent = `${img.naturalWidth} x ${img.naturalHeight} px`;
+          dropZone.classList.add('hidden');
+          workspace.classList.remove('hidden');
+          applySobelFilter();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Preset Samples
+    const sampleUrls = {
+      puppy: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800&auto=format&fit=crop&q=80',
+      flower: 'https://images.unsplash.com/photo-1508615039623-a25605d2b022?w=800&auto=format&fit=crop&q=80',
+      castle: 'https://images.unsplash.com/photo-1533158326339-7f3cf2404354?w=800&auto=format&fit=crop&q=80'
+    };
+
+    document.querySelectorAll('.sample-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const sampleKey = btn.dataset.sample;
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          loadedImage = img;
+          originalPreview.src = img.src;
+          photoDimLabel.textContent = `${img.naturalWidth} x ${img.naturalHeight} px`;
+          dropZone.classList.add('hidden');
+          workspace.classList.remove('hidden');
+          applySobelFilter();
+        };
+        img.src = sampleUrls[sampleKey];
+      });
+    });
+
+    // Sobel Edge Detection Engine
+    function applySobelFilter() {
+      if (!loadedImage) return;
+
+      // Cap processing size to max 1600px width/height for fast 60fps responsiveness
+      const maxDim = 1400;
+      let width = loadedImage.naturalWidth;
+      let height = loadedImage.naturalHeight;
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      outputCanvas.width = width;
+      outputCanvas.height = height;
+      const ctx = outputCanvas.getContext('2d');
+
+      // Draw original image into canvas
+      ctx.drawImage(loadedImage, 0, 0, width, height);
+
+      const imgData = ctx.getImageData(0, 0, width, height);
+      const data = imgData.data;
+
+      // 1. Grayscale luminance pass
+      const gray = new Uint8ClampedArray(width * height);
+      for (let i = 0, j = 0; i < data.length; i += 4, j++) {
+        // Luminance Y = 0.299R + 0.587G + 0.114B
+        gray[j] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+      }
+
+      // 2. Sobel Edge Kernel Pass
+      const sensitivity = parseInt(sliderSensitivity.value, 10);
+      const darkness = parseInt(sliderDarkness.value, 10);
+      const invert = checkInvert.checked;
+
+      const outputData = ctx.createImageData(width, height);
+      const out = outputData.data;
+
+      for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+          const idx = y * width + x;
+
+          // Sobel Horizontal (Gx)
+          // [-1, 0, 1]
+          // [-2, 0, 2]
+          // [-1, 0, 1]
+          const gx = 
+            -1 * gray[(y - 1) * width + (x - 1)] + 1 * gray[(y - 1) * width + (x + 1)] +
+            -2 * gray[y * width + (x - 1)]       + 2 * gray[y * width + (x + 1)] +
+            -1 * gray[(y + 1) * width + (x - 1)] + 1 * gray[(y + 1) * width + (x + 1)];
+
+          // Sobel Vertical (Gy)
+          // [-1, -2, -1]
+          // [ 0,  0,  0]
+          // [ 1,  2,  1]
+          const gy = 
+            -1 * gray[(y - 1) * width + (x - 1)] - 2 * gray[(y - 1) * width + x] - 1 * gray[(y - 1) * width + (x + 1)] +
+             1 * gray[(y + 1) * width + (x - 1)] + 2 * gray[(y + 1) * width + x] + 1 * gray[(y + 1) * width + (x + 1)];
+
+          // Magnitude approximation |gx| + |gy|
+          let mag = (Math.abs(gx) + Math.abs(gy)) * (darkness * 0.7);
+
+          // Thresholding
+          let pixelVal;
+          if (mag > sensitivity) {
+            pixelVal = invert ? 255 : 0; // Edge line
+          } else {
+            pixelVal = invert ? 0 : 255; // White paper
+          }
+
+          const pIdx = idx * 4;
+          out[pIdx] = pixelVal;
+          out[pIdx + 1] = pixelVal;
+          out[pIdx + 2] = pixelVal;
+          out[pIdx + 3] = 255;
+        }
+      }
+
+      ctx.putImageData(outputData, 0, 0);
+    }
+
+    // Sliders Event Handlers
+    sliderSensitivity.addEventListener('input', (e) => {
+      labelSensitivity.textContent = e.target.value;
+      applySobelFilter();
+    });
+
+    sliderDarkness.addEventListener('input', (e) => {
+      labelDarkness.textContent = e.target.value;
+      applySobelFilter();
+    });
+
+    checkInvert.addEventListener('change', applySobelFilter);
+
+    // Reset Button
+    btnReset.addEventListener('click', () => {
+      loadedImage = null;
+      originalPreview.src = '';
+      workspace.classList.add('hidden');
+      dropZone.classList.remove('hidden');
+      fileInput.value = '';
+    });
+
+    // Print Button
+    btnPrint.addEventListener('click', () => {
+      window.print();
+    });
+
+    // Download PNG Button
+    btnDownload.addEventListener('click', () => {
+      if (!outputCanvas) return;
+      const a = document.createElement('a');
+      a.download = 'coloring-page.png';
+      a.href = outputCanvas.toDataURL('image/png');
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
+  </script>
+</body>
+</html>
